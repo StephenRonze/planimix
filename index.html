@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planimix - organisateur de repas pour 3</title>
+<style>
+:root{
+  --bg:#f6f4ef; --card:#ffffff; --ink:#2b2823; --muted:#7d7870;
+  --line:#e7e3da; --accent:#3e7c4f; --accent-soft:#e5f0e7;
+  --viande:#a94442; --viande-bg:#f7e5e4;
+  --poisson:#2e6e8e; --poisson-bg:#e2eff5;
+  --vege:#3f7d3b; --vege-bg:#e6f1e0;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+header{padding:20px 22px 8px;max-width:1250px;margin:0 auto}
+h1{margin:0 0 4px;font-size:26px}
+header p{margin:0;color:var(--muted);font-size:14px}
+.toolbar{max-width:1250px;margin:10px auto 0;padding:0 22px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.small{padding:4px 10px;font-size:12.5px;border-radius:7px}
+#summary{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:13px}
+.chip.warn{border-color:var(--viande);color:var(--viande);font-weight:600}
+main{max-width:1250px;margin:14px auto 0;padding:0 22px;display:grid;grid-template-columns:minmax(0,2.1fr) minmax(280px,1fr);gap:16px;align-items:start}
+#week{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px}
+.day-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.day-card.weekend{border-color:#d8c89a;background:#fffdf6}
+.day-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:8px}
+.day-head h2{margin:0;font-size:16px}
+.day-head .note{font-size:11.5px;color:var(--muted)}
+.meal{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;background:#fff}
+.meal:last-child{margin-bottom:0}
+.meal .m-head{display:flex;justify-content:space-between;align-items:center}
+.meal .m-kind{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.meal h3{margin:2px 0 8px;font-size:15px}
+.badge{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:12px;margin-right:4px;font-weight:600}
+.cat-viande{background:var(--viande-bg);color:var(--viande)}
+.cat-poisson{background:var(--poisson-bg);color:var(--poisson)}
+.cat-vege{background:var(--vege-bg);color:var(--vege)}
+.meta{background:#f4f2ec;color:#6b665e;border-radius:12px;font-weight:400}
+.reroll{margin-left:auto}
+details{margin-top:8px}
+details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600}
+details ol,.details ul{padding-left:20px;margin:6px 0;font-size:13.5px}
+details ol li{margin:3px 0}
+.pantry{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.astuce{font-size:12.5px;background:var(--accent-soft);border-radius:8px;padding:6px 9px;margin-top:6px}
+.restes{font-size:12.5px;background:#fdf3dd;border-radius:8px;padding:6px 9px;margin-top:6px}
+aside#courses{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto}
+aside#courses h2{margin:0 0 2px;font-size:18px}
+aside#courses .sub{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.rayon{margin-bottom:10px}
+.rayon h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:3px;margin:10px 0 4px}
+.item{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:14px}
+.item input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.item .qty{margin-left:auto;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.item.done label{text-decoration:line-through;color:var(--muted)}
+.items-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+#conseils{max-width:1250px;margin:18px auto 0;padding:0 22px 40px}
+#conseils .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:8px}
+#conseils .box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+#conseils h2{font-size:18px;margin:0}
+#conseils h4{margin:10px 0 4px;font-size:14px}
+#conseils ul{margin:0;padding-left:20px;font-size:13.5px}
+#conseils li{margin:3px 0}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:0 22px 10px}
+@media (max-width:920px){main{grid-template-columns:1fr}aside#courses{position:static;max-height:none}}
+@media print{
+  body{background:#fff}
+  .no-print,header,footer,#conseils,.toolbar{display:none !important}
+  main{display:block;max-width:none;margin:0;padding:0}
+  aside#courses{border:none;position:static;max-height:none;overflow:visible;padding:0}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Planimix - organisateur de repas</h1>
+  <p>Pour 3 : 2 adultes (dont 1 qui surveille sa ligne) + 1 ado sportif de 17 ans en pleine croissance.
+  Recettes pour <strong>4 parts</strong> (l'ado sportif compte pour 1,5 part). En semaine : dîner uniquement.
+  Week-end : déjeuner + dîner. Viande 4 a 5 fois par semaine, poisson 2 fois, vegetarien sinon.</p>
+</header>
+
+<div class="toolbar no-print">
+  <button id="btn-new" class="primary">Générer une nouvelle semaine</button>
+  <div id="summary"></div>
+</div>
+
+<main>
+  <section id="week" class="no-print"></section>
+  <aside id="courses">
+    <h2>Liste de courses</h2>
+    <p class="sub" id="list-sub"></p>
+    <div id="list"></div>
+    <div class="items-actions no-print">
+      <button id="btn-copy" class="small">Copier la liste</button>
+      <button id="btn-print" class="small">Imprimer</button>
+      <button id="btn-clear" class="small">Tout décocher</button>
+    </div>
+  </aside>
+</main>
+
+<section id="conseils" class="no-print">
+  <h2>Conseils du foyer</h2>
+  <div class="cols">
+    <div class="box">
+      <h4>Équilibre (pour tous)</h4>
+      <ul>
+        <li>Assiette idéale : la moitié de légumes, un quart de protéines, un quart de féculents.</li>
+        <li>Poisson 2 fois par semaine (dont 1 gras : saumon, maquereau) - déjà planifié.</li>
+        <li>Légumineuses 3 fois par semaine - déjà planifiées (lentilles, pois chiches, haricots rouges).</li>
+        <li>Fin de repas : fruit ou yaourt nature plutôt que dessert sucré.</li>
+      </ul>
+      <h4>Adulte qui surveille sa ligne</h4>
+      <ul>
+        <li>Légumes à volonté, féculents 3-4 cuillères à soupe cuites, protéines à chaque repas.</li>
+        <li>Cuissons sans matière grasse : papillote, four, wok, vapeur - privilégiées dans les recettes rapides.</li>
+        <li>Un plat copieux le week-end ne casse rien : réduisez simplement le pain/féculents ce repas-là.</li>
+      </ul>
+      <h4>Ado sportif en croissance</h4>
+      <ul>
+        <li>Féculents à satiété (+50 % par rapport aux adultes), il faut du carburant.</li>
+        <li>3-4 produits laitiers par jour (calcium), viande rouge ou légumineuses pour le fer.</li>
+        <li>Collation après le sport : pain + beurre de cacahuète + grand verre de lait ou yaourt à boire.</li>
+        <li>Boire 1,5 à 2 L d'eau par jour, davantage les jours d'entraînement.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>Économies</h4>
+      <ul>
+        <li>Le batch cooking du week-end (chili, lasagnes, gratin, poulet rôti) : 2-3 parts congelées = 2 dîners de semaine a moins de 2 EUR la part, déjà prêts.</li>
+        <li>Cuisses et hauts de cuisse de poulet : environ moitié prix des filets, plus de goût.</li>
+        <li>Légumes surgelés (épinards, petits pois) : souvent 30-40 % moins chers que le frais hors saison, zéro gaspillage.</li>
+        <li>Conserveres (thon, légumineuses, tomates) : achetez en lot quand c'est en promo, marques distributeur.</li>
+        <li>Le poulet rôti du dimanche sert 2 fois : les restes font la salade ou les sandwichs du lundi.</li>
+        <li>Courses une seule fois par semaine : le plan est fait pour ça, vous n'achetez que ce qui est listé.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>Soirs de semaine : rester sous les 30 minutes</h4>
+      <ul>
+        <li>Les dîners de semaine de cette appli sont tous prêts en 15 à 35 minutes maximum.</li>
+        <li>Sortez une part de batch congelée le matin : dîner prêt en 10 minutes au micro-ondes.</li>
+        <li>Le riz et la semoule cuisent pendant que vous préparez la garniture.</li>
+        <li>Le "changer" sur un repas garde l'équilibre viande/poisson/végé de la semaine.</li>
+      </ul>
+      <h4>Mode d'emploi</h4>
+      <ul>
+        <li>"Générer une nouvelle semaine" : propose 9 repas (5 dîners de semaine + 4 repas de week-end) qui respectent viande 4-5, poisson 2, végé 3.</li>
+        <li>Un repas ne vous plaît pas ? "Changer" le remplace par une recette du même type.</li>
+        <li>La liste de courses se met à jour automatiquement, rayon par rayon. Cochez au fur et à mesure.</li>
+        <li>Votre semaine et vos cases cochées sont mémorisées sur cet ordinateur.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>Planimix - fichier autonome, aucune donnée envoyée. Prix indicatifs (France, grandes surfaces).</footer>
+
+<script>
+/*SCRIPT-START*/
+"use strict";
+
+/* ---------- Recettes (cat: viande | poisson | vege) (pools: rapide | weekend) ---------- */
+/* ingredients: [cle, libelle, quantite, unite] - u = unites pieces, g, ml        */
+/* cout : prix estime par part (EUR). parts : nombre de parts cuites (defaut 4).  */
+
+var RECIPES = [
+ { id:"Q1", nom:"Omelette aux champignons et courgettes", cat:"vege", tag:"Oeufs",
+   minutes:20, cout:1.30, pools:["rapide"],
+   ingredients:[["oeufs","oeufs",8,"u"],["champignons","champignons de Paris",400,"g"],
+     ["courgettes","courgettes",2,"u"],["salade","salade verte (sachet)",1,"u"],
+     ["pain-c","pain complet (demi-baguette)",1,"u"]],
+   staples:["huile d'olive","sel","poivre","ciboulette ou persil"],
+   steps:["Émincer les champignons, couper les courgettes en petits des.",
+     "Faire revenir 5 min dans un filet d'huile.",
+     "Battre les oeufs, verser, cuire a feu doux en repliant l'omelette.",
+     "Servir avec la salade et le pain complet."],
+   astuce:"Pour la ligne : pas de fromage dans l'omelette et cuisson a feu doux, la dorure demande peu d'huile." },
+
+ { id:"Q2", nom:"Salade de lentilles, feta et oeufs durs", cat:"vege", tag:"Légumineuses",
+   minutes:25, cout:1.70, pools:["rapide"],
+   ingredients:[["lentilles","lentilles vertes (boites de 400 g)",2,"u"],
+     ["tomates-c","tomates cerises",250,"g"],["concombre","concombre",1,"u"],
+     ["oignon-r","oignon(s) rouge(s)",1,"u"],["feta","feta",200,"g"],["oeufs","oeufs",4,"u"]],
+   staples:["moutarde","vinaigre","huile d'olive","sel","poivre"],
+   steps:["Rincer les lentilles en boite, les rechauffer 3 min ou les laisser tiedes.",
+     "Couper tomates, concombre, oignon rouge ; cuire les oeufs 9 min.",
+     "Vinaigrette moutarde-vinaigre-huile.",
+     "Melanger, ajouter la feta emiettee et les oeufs durs coupes."],
+   astuce:"Repas riche en proteines et fibres, tres rassasiant pour peu de calories." },
+
+ { id:"Q3", nom:"Wraps mexicains aux haricots rouges", cat:"vege", tag:"Légumineuses",
+   minutes:20, cout:1.60, pools:["rapide"],
+   ingredients:[["tortillas","tortillas de ble (pack)",1,"u"],
+     ["haricots-r","haricots rouges (boites de 400 g)",2,"u"],["mais","mais (boite)",1,"u"],
+     ["chou-rouge","petit chou rouge",1,"u"],["carottes","carottes",2,"u"],
+     ["citron","citron(s)",1,"u"],["yaourts","yaourts nature",2,"u"]],
+   staples:["epices mexicaines (ou paprika + cumin)","sel","poivre","huile d'olive"],
+   steps:["Rechauffer les haricots rinces avec les epices et le mais, 5 min.",
+     "Emincer tres finement le chou rouge et raper les carottes.",
+     "Preparer la sauce : 2 yaourts, jus de citron, sel, poivre.",
+     "Rechauffer les tortillas 30 s a la poele, garnir, rouler."],
+   astuce:"Le chou rouge restant se garde une semaine au frais dans du film : il resservira en salade." },
+
+ { id:"Q4", nom:"Poelee de pois chiches aux epinards", cat:"vege", tag:"Légumineuses",
+   minutes:25, cout:1.40, pools:["rapide"],
+   ingredients:[["pois-chiches","pois chiches (boites de 400 g)",2,"u"],
+     ["epinards-s","epinards surgelés",500,"g"],["oignon","oignon(s)",1,"u"],
+     ["tomates-c-400","tomates concassées (boite 400 g)",1,"u"],["riz","riz basmati",250,"g"]],
+   staples:["cumin","ail","huile d'olive","sel","poivre"],
+   steps:["Cuire le riz.",
+     "Faire fondre l'oignon emince, ajouter epices et ail.",
+     "Ajouter pois chiches egouttes puis tomates concassees, 5 min.",
+     "Ajouter les epinards surgelés, laisser cuire 5 min jusqu'a ce qu'ils rendent leur eau."],
+   astuce:"Poelee meilleure avec des epinards bien reduits : continuez la cuisson si il reste de l'eau." },
+
+ { id:"Q5", nom:"Pates au thon, tomates et olives", cat:"poisson", tag:"Thon (conserve)",
+   minutes:20, cout:1.80, pools:["rapide"],
+   ingredients:[["pates","pates (fusilli)",400,"g"],["thon","thon a l'huile (boites 160 g)",2,"u"],
+     ["tomates-c-400","tomates concassées (boite 400 g)",1,"u"],["oignon","oignon(s)",1,"u"],
+     ["olives","olives noires (bocal)",1,"u"]],
+   staples:["origan","huile d'olive","sel","poivre","ail"],
+   steps:["Cuire les pates al dente.",
+     "Revenir oignon et ail, verser les tomates, laisser 5 min.",
+     "Hors du feu ajouter le thon egoutte et les olives.",
+     "Melanger aux pates avec une louche d'eau de cuisson."],
+   astuce:"Un classique economique : la proteine vient de deux boites de thon, rien de plus a acheter." },
+
+ { id:"Q6", nom:"Papillotes de colin aux legumes", cat:"poisson", tag:"Colin",
+   minutes:35, cout:2.40, pools:["rapide"],
+   ingredients:[["colin","filet(s) de colin (frais ou surgelé)",600,"g"],
+     ["courgettes","courgettes",2,"u"],["carottes","carottes",2,"u"],
+     ["citron","citron(s)",1,"u"],["riz","riz basmati",250,"g"]],
+   staples:["herbes de Provence","huile d'olive","sel","poivre"],
+   steps:["Cuire le riz.",
+     "Couper courgettes et carottes en fins batonnets, repartir sur 4 feuilles de papier cuisson.",
+     "Poser un filet par papillote, rondelle de citron, herbes, filet d'huile, fermer.",
+     "Four 200 C pendant 15-18 min (20 si congeles)."],
+   astuce:"Cuisson sans matiere grasse : la papillote est la cuisson minceur par excellence." },
+
+ { id:"Q7", nom:"Riz saute aux crevettes", cat:"poisson", tag:"Crevettes surgelées",
+   minutes:25, cout:2.60, pools:["rapide"],
+   ingredients:[["crevettes","crevettes decortiquées surgelées",500,"g"],
+     ["riz","riz basmati",300,"g"],["petits-pois-s","petits pois surgelés",300,"g"],
+     ["oeufs","oeufs",2,"u"],["poireau","poireau(x)",1,"u"]],
+   staples:["sauce soja","ail","huile","sel","poivre"],
+   steps:["Cuire le riz a l'avance (la veille, c'est encore mieux) et le laisser refroidir.",
+     "Faire revenir le poireau en rondelles et l'ail.",
+     "Ajouter crevettes et petits pois congeles, 5 min a feu vif.",
+     "Ajouter le riz et les oeufs battus, saisir 3 min, assaisonner de sauce soja."],
+   astuce:"Ideal pour recycler un reste de riz : dans ce cas retirez-le de la liste." },
+
+ { id:"Q8", nom:"Tortilla de courgettes", cat:"vege", tag:"Oeufs",
+   minutes:30, cout:1.30, pools:["rapide"],
+   ingredients:[["pdtes","pommes de terre",500,"g"],["oeufs","oeufs",8,"u"],
+     ["courgettes","courgettes",1,"u"],["oignon","oignon(s)",1,"u"],
+     ["salade","salade verte (sachet)",1,"u"]],
+   staples:["huile d'olive","sel","poivre"],
+   steps:["Couper les pommes de terre en fines rondelles, les cuire doucement a la poele 15 min avec l'oignon.",
+     "Ajouter la courgette en rondelles 5 min.",
+     "Battre les oeufs, verser, cuire a feu doux 8 min en inclinant la poele.",
+     "Glisser sur une assiette, retourner, cuire encore 4 min. Servir tiede avec la salade."],
+   astuce:"Plat espagnol economique et nourrissant : comptez les oeufs en promotion." },
+
+ { id:"Q9", nom:"Wok de dinde aux courgettes", cat:"viande", tag:"Volaille",
+   minutes:25, cout:2.40, pools:["rapide"],
+   ingredients:[["dinde","escalopes de dinde",500,"g"],["courgettes","courgettes",2,"u"],
+     ["poivrons","poivron(s)",2,"u"],["semoule","semoule",300,"g"],["citron","citron(s)",1,"u"]],
+   staples:["sauce soja","ail","huile","gingembre (facultatif)","sel","poivre"],
+   steps:["Couper la dinde en lamelles, la faire saisir a feu tres vif 4 min, reserver.",
+     "Wok les legumes en julienne 5 min.",
+     "Remettre la dinde, un trait de sauce soja et le jus du citron.",
+     "Servir avec la semoule : 5 min, versez simplement de l'eau bouillante dessus."],
+   astuce:"Les escalopes de dinde sont souvent en promo : congelez-les en paquets de 500 g." },
+
+ { id:"Q10", nom:"Emince de poulet sauce tomate, riz", cat:"viande", tag:"Volaille",
+   minutes:30, cout:2.30, pools:["rapide"],
+   ingredients:[["poulet-e","filet(s) de poulet (ou emince)",600,"g"],
+     ["tomates-c-800","tomates concassées (boite 800 g)",1,"u"],["oignon","oignon(s)",1,"u"],
+     ["poivrons","poivron(s)",1,"u"],["riz","riz basmati",300,"g"]],
+   staples:["herbes de Provence","ail","huile d'olive","sel","poivre"],
+   steps:["Cuire le riz.",
+     "Saisir le poulet emince : 5 min a feu vif, reserver.",
+     "Faire revenir oignon et poivron, verser les tomates, 8 min.",
+     "Remettre le poulet, laisser 3 min, servir avec le riz."],
+   astuce:"Version economique : remplacez les filets par des hauts de cuisse desosses, moins chers et plus moelleux." },
+
+ { id:"Q11", nom:"Boulettes de boeuf sauce tomate", cat:"viande", tag:"Viande rouge",
+   minutes:30, cout:2.70, pools:["rapide"],
+   ingredients:[["boeuf-h","boeuf hache 5 % MG",500,"g"],["oignon","oignon(s)",1,"u"],
+     ["chapelure","chapelure",40,"g"],["tomates-c-800","tomates concassées (boite 800 g)",1,"u"],
+     ["pates","pates (coquillettes)",400,"g"],["parmesan","parmesan",50,"g"]],
+   staples:["origan","ail","sel","poivre","huile d'olive"],
+   steps:["Melanger le boeuf, le demi-oignon rape, la chapelure, sel, poivre. Former 12 boulettes.",
+     "Les saisir 5 min, verser les tomates concassees, laisser mijoter 12 min.",
+     "Cuire les pates pendant ce temps.",
+     "Servir avec le parmesan rape."],
+   astuce:"Le boeuf hache 5 % couvre le besoin en fer de l'ado sportif." },
+
+ { id:"Q12", nom:"Croque-monsieur et salade", cat:"viande", tag:"Jambon",
+   minutes:15, cout:1.70, pools:["rapide"],
+   ingredients:[["pain-mie","pain de mie (pack)",1,"u"],["jambon-b","jambon blanc",200,"g"],
+     ["emmental","emmental rape (ou fromage a croque)",100,"g"],
+     ["salade","salade verte (sachet)",1,"u"],["tomates","tomates",2,"u"]],
+   staples:["beurre","moutarde (facultatif)","sel","poivre"],
+   steps:["Beurrer et garnir les pains de mie : jambon + fromage.",
+     "Four 200 C, 8-10 min, ou grille-pain double face.",
+     "Servir avec la salade et les tomates en rondelles, vinaigrette legere."],
+   astuce:"Le dîner de secours le plus rapide de la semaine : gardez toujours un pack de pain de mie au congelateur." },
+
+ { id:"Q13", nom:"Chili con carne", cat:"viande", tag:"Viande rouge",
+   minutes:35, cout:2.20, pools:["rapide"], parts:6,
+   ingredients:[["boeuf-h","boeuf hache 5 % MG",750,"g"],
+     ["haricots-r","haricots rouges (boites de 400 g)",3,"u"],
+     ["tomates-c-800","tomates concassées (boite 800 g)",2,"u"],["oignon","oignon(s)",2,"u"],
+     ["poivrons","poivron(s)",1,"u"],["riz","riz basmati",300,"g"]],
+   staples:["epices chili (ou paprika fume + cumin + piment)","ail","sel","poivre","huile"],
+   steps:["Faire revenir oignons, ail et poivron, ajouter le boeuf hache, 5 min.",
+     "Verser les tomates et les epices, laisser mijoter 15 min.",
+     "Ajouter les haricots rinces, 10 min de plus.",
+     "Servir avec le riz ; laisser refroidir et congelez 2 parts."],
+   astuce:"Cuisine pour 6 parts : le surplus congele = un dîner de semaine a rechauffer, environ 2,20 EUR la part.",
+   restes:"Le chili se garde 3 jours au refrigerateur et se congele tres bien." },
+
+ { id:"Q14", nom:"Soupe de legumes et tartines de chevre chaud", cat:"vege", tag:"Soupe",
+   minutes:30, cout:1.30, pools:["rapide"],
+   ingredients:[["poireau","poireau(x)",2,"u"],["carottes","carottes",3,"u"],
+     ["pdtes","pommes de terre",500,"g"],["potiron","potiron ou potimarron",500,"g"],
+     ["oignon","oignon(s)",1,"u"],["pain-c","pain complet (baguette)",1,"u"],
+     ["chevre","buche de chevre",1,"u"]],
+   staples:["bouillon cube","huile d'olive","sel","poivre","noix de muscade (facultatif)"],
+   steps:["Emincer tous les legumes, les faire revenir 3 min dans un filet d'huile.",
+     "Couvrir d'eau + 2 cubes de bouillon, cuire 20 min.",
+     "Mixer selon la texture desiree.",
+     "Tartines passees au grille-pain avec des rondelles de chevre, 3 min au four."],
+   astuce:"Soupe = legumes de saison les moins chers : fiez-vous aux promos du rayon fruits et legumes." },
+
+ { id:"Q15", nom:"Curry de patate douce et pois chiches", cat:"vege", tag:"Légumineuses",
+   minutes:30, cout:1.60, pools:["rapide"],
+   ingredients:[["patate-d","patates douces",600,"g"],
+     ["pois-chiches","pois chiches (boites de 400 g)",2,"u"],
+     ["lait-coco","lait de coco (brique 400 ml)",1,"u"],
+     ["epinards-s","epinards surgelés",300,"g"],["oignon","oignon(s)",1,"u"],
+     ["riz","riz basmati",250,"g"]],
+   staples:["poudre de curry","ail","gingembre (facultatif)","sel","poivre","huile"],
+   steps:["Cuire le riz.",
+     "Revenir l'oignon avec le curry, ajouter la patate douce en cubes, 5 min.",
+     "Verser le lait de coco, laisser mijoter 12 min.",
+     "Ajouter pois chiches et epinards, 5 min de plus. Servir avec le riz."],
+   astuce:"Le lait de coco entier est calorique : version ligne, remplacez la moitie par du bouillon." },
+
+ { id:"W1", nom:"Poulet roti du dimanche et legumes au four", cat:"viande", tag:"Volaille",
+   minutes:90, cout:2.90, pools:["weekend"], parts:6,
+   ingredients:[["poulet-r","poulet roti (1,3 kg)",1,"u"],["pdtes","pommes de terre",1000,"g"],
+     ["carottes","carottes",4,"u"],["oignon","oignon(s)",2,"u"],["citron","citron(s)",1,"u"]],
+   staples:["huile d'olive","herbes de Provence","thym","ail (2 gousses dans la peau)","sel","poivre"],
+   steps:["Four 200 C. Saler, poivrer le poulet, le poser sur les legumes coupes en gros morceaux.",
+     "Huiler le tout, ajouter le citron coupe en 4 dans le plat.",
+     "Cuire 75-85 min en arrosant 2 fois.",
+     "Il reste en general l'equivalent de 2 parts : gardez-les pour la salade de poulet du lundi soir."],
+   astuce:"Un poulet entier de 1,3 kg coute 7-9 EUR : avec les restes, c'est la viande la moins chere au kilo apres le hache.",
+   restes:"Les restes, desosses, font une salade ou des sandwichs pour 2-3 repas du lundi." },
+
+ { id:"W2", nom:"Paves de saumon, riz et brocolis", cat:"poisson", tag:"Oméga-3",
+   minutes:45, cout:4.00, pools:["weekend"],
+   ingredients:[["saumon","pavé(s) de saumon",600,"g"],["riz","riz basmati",300,"g"],
+     ["brocolis","brocoli(s)",2,"u"],["citron","citron(s)",1,"u"]],
+   staples:["huile d'olive","sel","poivre","aneth (facultatif)"],
+   steps:["Four 200 C. Poser les paves sur papier cuisson, sel, poivre, filet d'huile et de citron.",
+     "Cuire 12-15 min selon l'epaisseur (le saumon se mange nacre au coeur).",
+     "Cuire le riz et les brocolis vapeur 8 min.",
+     "Servir avec un quartier de citron et de l'aneth."],
+   astuce:"Le repas poisson gras de la semaine (oméga-3). Surveillance de ligne : 120-150 g de saumon suffisent, completez de riz et legumes." },
+
+ { id:"W3", nom:"Lasagnes a la bolognaise", cat:"viande", tag:"Viande rouge",
+   minutes:75, cout:2.60, pools:["weekend"], parts:6,
+   ingredients:[["lasagnes","plaques a lasagne",250,"g"],["boeuf-h","boeuf hache 5 % MG",750,"g"],
+     ["tomates-c-800","tomates concassées (boite 800 g)",2,"u"],["oignon","oignon(s)",1,"u"],
+     ["carottes","carottes",1,"u"],["lait","lait",1000,"ml"],["beurre","beurre",60,"g"],
+     ["farine","farine",60,"g"],["emmental","emmental rape",200,"g"]],
+   staples:["ail","origan","noix de muscade","sel","poivre","huile d'olive"],
+   steps:["Bolognaise : revenir oignon, ail, carotte rapee, ajouter le boeuf, puis les tomates. Mijoter 25 min.",
+     "Bechamel : beurre + farine 2 min, verser le lait petit a petit, assaisonner sel, poivre, muscade.",
+     "Monter : sauce, plaques, bechamel ; renouveler, finir par bechamel + emmental.",
+     "Four 200 C, 35 min. Laisser tiedir, congelez 2 parts refroidies."],
+   astuce:"Le plat batch par excellence : le travail est le meme pour 6 ou pour 4 parts.",
+   restes:"2 parts congelees = 2 dîners de semaine a 2,60 EUR la part, prets en 10 min au four." },
+
+ { id:"W4", nom:"Quiche aux poireaux", cat:"vege", tag:"Oeufs",
+   minutes:55, cout:1.80, pools:["weekend"],
+   ingredients:[["pate-b","pate brisée",1,"u"],["poireau","poireau(x)",3,"u"],
+     ["oeufs","oeufs",4,"u"],["creme-l","crème légère",200,"ml"],["lait","lait",100,"ml"],
+     ["emmental","emmental rape",100,"g"]],
+   staples:["sel","poivre","noix de muscade","beurre (pour le moule)"],
+   steps:["Faire fondre les poireaux en rondelles 10 min avec un peu de beurre, saler.",
+     "Foncer le moule avec la pate, piquer a la fourchette.",
+     "Battre oeufs, crème légère, lait, emmental, poivre, muscade.",
+     "Garnir, four 200 C, 30-35 min. Servir avec une salade verte."],
+   astuce:"Version encore plus economique : ajoutez des lardons et otez 50 g d'emmental - mais elle sortira alors du végé." },
+
+ { id:"W5", nom:"Boeuf mode aux carottes (mijote)", cat:"viande", tag:"Viande rouge",
+   minutes:150, cout:2.90, pools:["weekend"],
+   ingredients:[["boeuf-b","boeuf a braiser (paleron)",800,"g"],["carottes","carottes",6,"u"],
+     ["oignon","oignon(s)",2,"u"],["concentre","concentré de tomate (petite boite)",1,"u"],
+     ["pdtes","pommes de terre",800,"g"],["champignons","champignons de Paris",250,"g"]],
+   staples:["bouillon cube","thym","laurier","sel","poivre","huile d'olive"],
+   steps:["Saisir le boeuf en morceaux sur toutes les faces, reserver.",
+     "Revenir oignons et carottes en biseaux, remettre la viande, concentré de tomate, 2 cubes de bouillon, thym, laurier.",
+     "Couvrir, four 150 C pendant 2 h (ou feux tres doux sur la plaque).",
+     "30 min avant la fin, ajouter pommes de terre et champignons."],
+   astuce:"Le paleron est une piece de boeuf peu chere et savoureuse apres mijotage : environ la moitie du prix d'un steak.",
+   restes:"Encore meilleur rechauffe le lendemain si vous preferez le programmer en dîner." },
+
+ { id:"W6", nom:"Gratin de pates jambon-champignons", cat:"viande", tag:"Jambon",
+   minutes:60, cout:2.10, pools:["weekend"], parts:6,
+   ingredients:[["pates","pates courtes (macaroni)",500,"g"],["jambon-b","jambon blanc",300,"g"],
+     ["champignons","champignons de Paris",500,"g"],["lait","lait",1000,"ml"],
+     ["beurre","beurre",60,"g"],["farine","farine",60,"g"],["emmental","emmental rape",150,"g"]],
+   staples:["noix de muscade","sel","poivre"],
+   steps:["Cuire les pates 2 min de moins que la consigne, egoutter.",
+     "Bechamel : beurre + farine, lait progressif, assaisonner.",
+     "Melanger pates, jambon en des, champignons poeles, bechamel.",
+     "Four 200 C, 25 min. Congelez 2 parts refroidies."],
+   astuce:"Le plat préféré des ados, et un des moins chers par part quand il sort du congélateur en semaine." },
+
+ { id:"W7", nom:"Tarte fine tomate-moutarde (petit prix)", cat:"vege", tag:"Tarte",
+   minutes:55, cout:1.70, pools:["weekend"],
+   ingredients:[["pate-b","pâte brisée",1,"u"],["tomates","tomates",4,"u"],
+     ["emmental","emmental rape",100,"g"],["salade","salade verte (sachet)",1,"u"]],
+   staples:["moutarde","herbes de Provence","sel","poivre","huile d'olive"],
+   steps:["Etaler la pate dans un moule, la badigeonner de moutarde.",
+     "Repartir les tomates en rondelles, sel, poivre, herbes, filet d'huile.",
+     "Four 200 C, 30-35 min jusqu'a ce que le bord soit dore.",
+     "Servir avec la salade verte."],
+   astuce:"Envie de ligne : la moutarde remplace la crème, la tarte reste legère et bien gouteuse." },
+
+ { id:"W8", nom:"Endives au jambon gratinees", cat:"viande", tag:"Jambon",
+   minutes:50, cout:2.20, pools:["weekend"],
+   ingredients:[["endives","endives",4,"u"],["jambon-t","tranches de jambon blanc",4,"u"],
+     ["lait","lait",500,"ml"],["beurre","beurre",40,"g"],["farine","farine",40,"g"],
+     ["emmental","emmental rape",120,"g"]],
+   staples:["noix de muscade","sel","poivre"],
+   steps:["Cuire les endives 10 min a la vapeur (ou 8 min au micro-ondes dans un peu d'eau).",
+     "Les enrouler dans les tranches de jambon, disposer dans un plat.",
+     "Bechamel : beurre + farine, lait, sel, poivre, muscade.",
+     "Napper, emmental, four 200 C, 20 min."],
+   astuce:"Un classique du nord de la France, copieux et equilibre : la salade verte en accompagnement fait le compte." },
+
+ { id:"W9", nom:"Tagliatelles saumon fume-courgettes", cat:"poisson", tag:"Saumon fumé",
+   minutes:30, cout:3.40, pools:["weekend"],
+   ingredients:[["tagliatelles","tagliatelles fraiches",500,"g"],
+     ["saumon-f","saumon fume",200,"g"],["courgettes","courgettes",2,"u"],
+     ["creme-l","crème légère",200,"ml"],["citron","citron(s)",1,"u"]],
+   staples:["huile d'olive","aneth (facultatif)","sel","poivre"],
+   steps:["Cuire les pates fraiches 3-4 min.",
+     "Saisir les courgettes en des a feu vif.",
+     "Ajouter la crème légère et le jus de citron, 2 min.",
+     "Melanger, ajouter le saumon fume en lanières hors du feu."],
+   astuce:"Le saumon fume en tranche de paquet fin suffit largement : il parfume tout le plat." },
+
+ { id:"W10", nom:"Moules marinieres et frites maison au four", cat:"poisson", tag:"Moules",
+   minutes:45, cout:2.80, pools:["weekend"],
+   ingredients:[["moules","moules (bouchot)",2000,"g"],["oignon","oignon(s)",2,"u"],
+     ["vin-blanc","vin blanc (pour la cuisson)",200,"ml"],["persil-pl","persil plat (botte)",1,"u"],
+     ["pdtes","pommes de terre",1000,"g"]],
+   staples:["beurre","poivre"],
+   steps:["Gratter et rincer les moules, jeter celles qui restent ouvertes.",
+     "Beurre + oignons eminces, 3 min, verser le vin, ajouter les moules.",
+     "Couvrir, secouer, 5-6 min jusqu'a ouverture. Persil cisele.",
+     "Frites au four : batonnets de pommes de terre, huile, four 220 C, 25-30 min en secouant."],
+   astuce:"Les moules sont le poisson le moins cher du marche (environ 4-5 EUR le kilo) : la proteine la moins chere avec les legumineuses." }
+];
+
+var BY_ID = {};
+RECIPES.forEach(function(r){ BY_ID[r.id] = r; });
+
+var SLOTS = [
+  { key:"lun-soir", day:"Lundi", meal:"Dîner", pool:"rapide" },
+  { key:"mar-soir", day:"Mardi", meal:"Dîner", pool:"rapide" },
+  { key:"mer-soir", day:"Mercredi", meal:"Dîner", pool:"rapide" },
+  { key:"jeu-soir", day:"Jeudi", meal:"Dîner", pool:"rapide" },
+  { key:"ven-soir", day:"Vendredi", meal:"Dîner", pool:"rapide" },
+  { key:"sam-midi", day:"Samedi", meal:"Déjeuner", pool:"weekend" },
+  { key:"sam-soir", day:"Samedi", meal:"Dîner", pool:"rapide" },
+  { key:"dim-midi", day:"Dimanche", meal:"Déjeuner", pool:"weekend" },
+  { key:"dim-soir", day:"Dimanche", meal:"Dîner", pool:"rapide" }
+];
+
+var BUDGET = { viande:4, poisson:2, vege:3 };   /* sur les 9 repas */
+var RAYON_ORDER = ["Fruits et légumes","Boucherie et volaille","Poissonnerie","Crèmerie et oeufs","Frais","Surgelés","Boulangerie","Épicerie"];
+
+function shuffle(arr){
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function poolOf(pool){ return RECIPES.filter(function(r){ return r.pools.indexOf(pool) >= 0; }); }
+
+/* Choisit une recette inutilisee de la categorie demandee dans le pool, sinon une autre categorie */
+function pickFrom(pool, cat, used){
+  var cand = poolOf(pool).filter(function(r){ return used.indexOf(r.id) < 0 && r.cat === cat; });
+  if (cand.length === 0) cand = poolOf(pool).filter(function(r){ return used.indexOf(r.id) < 0; });
+  if (cand.length === 0) return null;
+  return cand[Math.floor(Math.random() * cand.length)];
+}
+
+function buildWeek(){
+  var week = {};
+  var used = [];
+  var budget = { viande:BUDGET.viande, poisson:BUDGET.poisson, vege:BUDGET.vege };
+
+  /* Les deux repas du week-end d'abord, categories differentes pour varier */
+  var weekend = shuffle(poolOf("weekend"));
+  var first = weekend[0];
+  var second = null;
+  for (var i = 1; i < weekend.length; i++){
+    if (weekend[i].cat !== first.cat) { second = weekend[i]; break; }
+  }
+  if (!second) second = weekend[1];
+  week["sam-midi"] = first.id; used.push(first.id); budget[first.cat]--;
+  week["dim-midi"] = second.id; used.push(second.id); budget[second.cat]--;
+
+  /* Les categories restantes, reparties et melangees sur les 7 autres slots */
+  var cats = [];
+  Object.keys(budget).forEach(function(c){
+    for (var n = 0; n < budget[c]; n++) cats.push(c);
+  });
+  cats = shuffle(cats);
+  var quickSlots = shuffle(SLOTS.filter(function(s){ return s.pool === "rapide"; }));
+  quickSlots.forEach(function(slot, idx){
+    var r = pickFrom(slot.pool, cats[idx] || "vege", used);
+    if (!r) return;
+    week[slot.key] = r.id;
+    used.push(r.id);
+  });
+  return week;
+}
+
+/* Remplacement d'un repas : recette inutilisee du meme pool, meme categorie en priorite */
+function rerollRecipe(week, slotKey){
+  var slot = null;
+  SLOTS.forEach(function(s){ if (s.key === slotKey) slot = s; });
+  var current = BY_ID[week[slotKey]];
+  var used = Object.keys(week).map(function(k){ return week[k]; });
+  var pool = poolOf(slot.pool);
+  var cand = pool.filter(function(r){ return used.indexOf(r.id) < 0 && r.cat === current.cat; });
+  if (cand.length === 0) cand = pool.filter(function(r){ return used.indexOf(r.id) < 0; });
+  if (cand.length === 0) return null;
+  return cand[Math.floor(Math.random() * cand.length)];
+}
+
+function countCats(week){
+  var c = { viande:0, poisson:0, vege:0 };
+  Object.keys(week).forEach(function(k){ if (BY_ID[week[k]]) c[BY_ID[week[k]].cat]++; });
+  return c;
+}
+function weekCost(week){
+  var total = 0, parts = 0;
+  Object.keys(week).forEach(function(k){
+    var r = BY_ID[week[k]]; if (!r) return;
+    var p = r.parts || 4;
+    total += r.cout * p; parts += p;
+  });
+  return { total: Math.round(total), parts: parts, perPart: parts ? (total / parts) : 0 };
+}
+
+function rayonOf(label){
+  var l = label.toLowerCase();
+  if (l.indexOf("surgel") >= 0 || l.indexOf("congel") >= 0) return "Surgelés";
+  if (/thon|olives|haricot|mais|pois chiche|lentille|tomates concass|concentr|pate|pates|pâte|pâtes|riz|semoule|farine|chapelure|tortilla|lait de coco|vin|bocal|plaque/.test(l)) {
+    if (l.indexOf("fraiche") >= 0 || l.indexOf("brisée") >= 0) return "Frais";
+    return "Épicerie";
+  }
+  if (/poulet|dinde|boeuf|jambon|viande|hache/.test(l)) return "Boucherie et volaille";
+  if (/colin|saumon|crevette|moule|poisson|pav/.test(l)) return "Poissonnerie";
+  if (/poulet roti/.test(l)) return "Boucherie et volaille";
+  if (/lait|creme|crème|fromage|feta|chevre|chèvre|emmental|parmesan|yaourt|beurre|oeuf/.test(l)) return "Crèmerie et oeufs";
+  if (/pain|tartine/.test(l)) return "Boulangerie";
+  if (/pate brisee|tagliatelles fraiches/.test(l)) return "Frais";
+  return "Fruits et légumes";
+}
+
+function aggShoppingList(week){
+  var map = {};
+  var order = [];
+  Object.keys(week).forEach(function(k){
+    var r = BY_ID[week[k]]; if (!r) return;
+    r.ingredients.forEach(function(ing){
+      var key = ing[0] + "|" + ing[3];
+      if (!map[key]) { map[key] = { k:ing[0], label:ing[1], q:0, u:ing[3] }; order.push(key); }
+      map[key].q += ing[2];
+    });
+  });
+  return order.map(function(key){ return map[key]; });
+}
+
+function pantryList(week){
+  var s = {};
+  Object.keys(week).forEach(function(k){
+    var r = BY_ID[week[k]]; if (!r) return;
+    (r.staples || []).forEach(function(st){ s[st] = true; });
+  });
+  return Object.keys(s).sort();
+}
+
+function fmtQty(item){
+  if (item.u === "g" || item.u === "ml") return item.q + (item.u === "g" ? " g" : " ml");
+  return String(item.q);
+}
+
+/*SCRIPT-END*/
+
+/* ---------- Interface ---------- */
+var state = { week:null, checked:{}, rerolls:{} };
+
+function storageGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function storageSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+
+function monLabel(){
+  var d = new Date();
+  var day = (d.getDay() + 6) % 7; /* 0 = lundi */
+  d.setDate(d.getDate() - day + 7); /* lundi suivant */
+  var mois = ["janvier","février","mars","avril","mai","juin","juillet","aout","septembre","octobre","novembre","decembre"];
+  return "semaine du lundi " + d.getDate() + " " + mois[d.getMonth()] + " " + d.getFullYear();
+}
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function mealCard(slotKey){
+  var slot = null;
+  SLOTS.forEach(function(s){ if (s.key === slotKey) slot = s; });
+  var r = BY_ID[state.week[slotKey]];
+  if (!r) return "<div class='meal'><em>Repas non planifi&eacute;</em></div>";
+  var parts = r.parts || 4;
+  var costBadge = r.cout < 1.8 ? "euro" : (r.cout < 2.6 ? "euro-euro" : "euro-euro-euro");
+  var costLabel = r.cout < 1.8 ? "petit prix" : (r.cout < 2.6 ? "prix moyen" : "petit extra");
+  return '' +
+  '<div class="meal">' +
+    '<div class="m-head"><span class="m-kind">' + esc(slot.meal) + '</span><span class="meta badge">' + r.minutes + ' min</span></div>' +
+    '<h3>' + esc(r.nom) + '</h3>' +
+    '<div>' +
+      '<span class="badge cat-' + r.cat + '">' + esc(r.tag) + '</span>' +
+      '<span class="meta badge" title="prix estime par part">&asymp;' + r.cout.toFixed(2).replace('.',',') + ' &euro;/part &middot; ' + esc(costLabel) + '</span>' +
+      (parts > 4 ? '<span class="meta badge">' + parts + ' parts (batch)</span>' : '') +
+    '</div>' +
+    '<div>' +
+      '<button class="small reroll" data-slot="' + slotKey + '">Changer ce repas</button>' +
+    '</div>' +
+    '<details><summary>Recette (pour ' + parts + ' parts)</summary>' +
+      '<ol>' + r.steps.map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' +
+      (r.astuce ? '<div class="astuce"><strong>Astuce :</strong> ' + esc(r.astuce) + '</div>' : '') +
+      (r.restes ? '<div class="restes"><strong>Restes :</strong> ' + esc(r.restes) + '</div>' : '') +
+      '<p class="pantry">Placard a verifier : ' + esc((r.staples || []).join(", ")) + '</p>' +
+    '</details>' +
+  '</div>';
+}
+
+function render(){
+  var days = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  var html = "";
+  days.forEach(function(day){
+    var slots = SLOTS.filter(function(s){ return s.day === day; });
+    var isWeekend = (day === "Samedi" || day === "Dimanche");
+    var note = isWeekend ? "2 repas" : "midi hors domicile";
+    html += '<div class="day-card' + (isWeekend ? " weekend" : "") + '">' +
+      '<div class="day-head"><h2>' + day + '</h2><span class="note">' + note + '</span></div>';
+    slots.forEach(function(s){ html += mealCard(s.key); });
+    html += '</div>';
+  });
+  document.getElementById("week").innerHTML = html;
+
+  document.querySelectorAll(".reroll").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var sk = btn.getAttribute("data-slot");
+      var nr = rerollRecipe(state.week, sk);
+      if (nr){
+        state.week[sk] = nr.id;
+        saveAndRender();
+      }
+    });
+  });
+
+  var c = countCats(state.week);
+  var cost = weekCost(state.week);
+  var meatOk = (c.viande >= 4 && c.viande <= 5);
+  document.getElementById("summary").innerHTML =
+    '<span class="chip' + (meatOk ? "" : " warn") + '">Viande : ' + c.viande + ' repas (objectif 4-5)</span>' +
+    '<span class="chip">Poisson : ' + c.poisson + '</span>' +
+    '<span class="chip">Végétarien : ' + c.vege + '</span>' +
+    '<span class="chip">Budget : &asymp;' + cost.total + ' &euro; / semaine (&asymp;' + cost.perPart.toFixed(2).replace('.',',') + ' &euro; la part)</span>';
+
+  document.getElementById("list-sub").innerHTML = "<strong>" + monLabel() + "</strong> &middot; " +
+    cost.parts + " parts au total (surplus batch congel&eacute;)";
+
+  var items = aggShoppingList(state.week);
+  var groups = {};
+  items.forEach(function(it){
+    var ray = rayonOf(it.label);
+    if (!groups[ray]) groups[ray] = [];
+    groups[ray].push(it);
+  });
+  var listHtml = "";
+  RAYON_ORDER.forEach(function(ray){
+    if (!groups[ray]) return;
+    listHtml += '<div class="rayon"><h3>' + esc(ray) + '</h3>';
+    groups[ray].forEach(function(it){
+      var key = it.k + "|" + it.u;
+      var done = state.checked[key] ? " done" : "";
+      listHtml += '<div class="item' + done + '"><input type="checkbox" data-key="' + esc(key) + '"' +
+        (state.checked[key] ? " checked" : "") + '><label>' + esc(it.label) + '</label><span class="qty">' + esc(fmtQty(it)) + '</span></div>';
+    });
+    listHtml += '</div>';
+  });
+  if (!items.length) listHtml = "<p>G&eacute;n&eacute;rez une semaine pour remplir la liste.</p>";
+  var pantry = pantryList(state.week);
+  if (pantry.length){
+    listHtml += '<div class="rayon"><h3>Placard &agrave; v&eacute;rifier</h3>';
+    pantry.forEach(function(st){
+      listHtml += '<div class="item"><input type="checkbox" data-key="P|' + esc(st) + '"' +
+        (state.checked["P|" + st] ? " checked" : "") + '><label>' + esc(st) + '</label></div>';
+    });
+    listHtml += '</div>';
+  }
+  document.getElementById("list").innerHTML = listHtml;
+
+  document.querySelectorAll("#list input[type=checkbox]").forEach(function(cb){
+    cb.addEventListener("change", function(){
+      if (cb.checked) state.checked[cb.getAttribute("data-key")] = true;
+      else delete state.checked[cb.getAttribute("data-key")];
+      storageSet("planimix-checked", JSON.stringify(state.checked));
+      render();
+    });
+  });
+}
+
+function saveAndRender(){
+  storageSet("planimix-week", JSON.stringify(state.week));
+  render();
+}
+
+function newWeek(){
+  state.week = buildWeek();
+  state.checked = {};
+  storageSet("planimix-checked", "{}");
+  saveAndRender();
+}
+
+function copyList(){
+  var items = aggShoppingList(state.week);
+  var groups = {};
+  items.forEach(function(it){
+    var ray = rayonOf(it.label);
+    if (!groups[ray]) groups[ray] = [];
+    groups[ray].push(it);
+  });
+  var lines = ["Liste de courses - " + monLabel(), ""];
+  RAYON_ORDER.forEach(function(ray){
+    if (!groups[ray]) return;
+    lines.push(ray.toUpperCase());
+    groups[ray].forEach(function(it){ lines.push("- " + it.label + " : " + fmtQty(it)); });
+    lines.push("");
+  });
+  var pantry = pantryList(state.week);
+  if (pantry.length){
+    lines.push("PLACARD A VERIFIER");
+    pantry.forEach(function(st){ lines.push("- " + st); });
+  }
+  var text = lines.join("\n");
+  var done = function(){ var b = document.getElementById("btn-copy"); b.textContent = "Liste copiée"; setTimeout(function(){ b.textContent = "Copier la liste"; }, 1600); };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text); done(); });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text){
+  var ta = document.createElement("textarea");
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("cut"); } catch(e){}
+  document.body.removeChild(ta);
+}
+
+(function init(){
+  var saved = storageGet("planimix-week");
+  var ok = false;
+  if (saved){
+    try {
+      var w = JSON.parse(saved);
+      var complete = SLOTS.every(function(s){ return w[s.key] && BY_ID[w[s.key]]; });
+      if (complete){ state.week = w; ok = true; }
+    } catch(e){}
+  }
+  if (!ok) state.week = buildWeek();
+  var chk = storageGet("planimix-checked");
+  if (chk){ try { state.checked = JSON.parse(chk) || {}; } catch(e){ state.checked = {}; } }
+  document.getElementById("btn-new").addEventListener("click", newWeek);
+  document.getElementById("btn-copy").addEventListener("click", copyList);
+  document.getElementById("btn-print").addEventListener("click", function(){ window.print(); });
+  document.getElementById("btn-clear").addEventListener("click", function(){
+    state.checked = {};
+    storageSet("planimix-checked", "{}");
+    render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>
